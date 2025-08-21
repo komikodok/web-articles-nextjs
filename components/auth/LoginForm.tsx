@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 
-import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
@@ -18,8 +17,9 @@ import { Input } from "@/components/ui/input"
 
 import { LoginSchema } from "@/lib/schemas/login.schema"
 import { useEffect, useState } from "react"
-import { formAnimate, formErrorAnimate } from "@/lib/animate/form.animate"
+import { formAnimate, formErrorAnimate } from "@/lib/animates/form.animate"
 import { useRouter } from "next/navigation"
+import { signIn, useSession } from "next-auth/react"
 
 
 const LoginForm = () => {
@@ -27,20 +27,28 @@ const LoginForm = () => {
     const [hasError, setHasError] = useState<boolean>(false)
 
     const router = useRouter()
+    const { status } = useSession()
 
     const form = useForm<z.infer<typeof LoginSchema>>({
         resolver: zodResolver(LoginSchema),
         defaultValues: {
-            email: "",
+            username: "",
             password: "",
-        }
+        },
+        mode: "onBlur"
     })
 
-    function handleSubmit(values: z.infer<typeof LoginSchema>) {
-        console.log(values)
+    async function handleSubmit(values: z.infer<typeof LoginSchema>) {
+        return await signIn("credentials", {
+            redirect: true,
+            username: values.username,
+            password: values.password,
+            callbackUrl: '/articles'
+        })
     }
 
     useEffect(() => {
+
         formAnimate('.form-item')
     }, [])
 
@@ -56,19 +64,19 @@ const LoginForm = () => {
 
     return (
         <>
-        <h2 className='text-lg font-bold '>Sign In</h2>
+        <h2 className='text-lg font-bold text-[tomato]'>Sign In</h2>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
                 <FormField
                     control={form.control}
-                    name="email"
+                    name="username"
                     render={({ field }) => (
                         <FormItem className="form-item">
-                            <FormLabel className="!text-black">Email</FormLabel>
+                            <FormLabel className="!text-black">Username</FormLabel>
                             <FormControl>
                                 <div>
                                     <Input 
-                                        placeholder="johndoe@example.com"
+                                        placeholder="John Doe"
                                         {...field} 
                                         className="border-1 outline-none focus-visible:ring-0.5"
                                     />
@@ -102,9 +110,14 @@ const LoginForm = () => {
                     )}
                 />
 
-                <Button color="white" type="submit" className="w-full">Register</Button>
+                <button 
+                    type="submit" 
+                    disabled={!form.formState.isValid}
+                    className="button w-full bg-[#e74124] hover:bg-[#f1310f] text-white cursor-pointer font-semibold p-2 rounded-md transition-all duration-500">
+                        { status === "loading" ? "Authenticating..." : "Sign In"}
+                </button>
                 <p className="font-light flex gap-2">
-                    Don&apos;t have an acount yet?
+                    Don&apos;t have an account yet?
                     <span onClick={() => router.push('/register')} className="text-blue-500 hover:underline cursor-pointer">Sign Up</span>
                 </p>
             </form>
