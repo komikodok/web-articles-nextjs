@@ -47,7 +47,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               url: err.config?.url,
               method: err.config?.method,
               status: err.response?.status,
-              data: err.response?.data,
             })
           } else {
             console.error("Unexpected error:", err)

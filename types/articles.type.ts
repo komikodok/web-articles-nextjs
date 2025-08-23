@@ -11,7 +11,7 @@ export interface ICategory {
   updatedAt: string
 }
 
-export interface IArticle {
+export interface IArticleData {
   id: string
   userId: string
   categoryId: string
@@ -32,4 +32,11 @@ export interface IArticleCard {
   category: {
     name: string
   }
+}
+
+export interface IArticle {
+  data: IArticleData[],
+  total: number,
+  page: number,
+  limit: number
 }

@@ -1,11 +1,11 @@
 import { ListArticles } from "@/components/articles/ListArticles"
 import { SessionProvider } from "next-auth/react"
 
-function Articles({ searchParams }: { searchParams: { [key: string]: string } }) {
+function Articles() {
   return (
     <>
       <SessionProvider>
-        <ListArticles searchParams={searchParams}/>
+        <ListArticles />
       </SessionProvider>
     </>
   )

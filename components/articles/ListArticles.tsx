@@ -1,84 +1,76 @@
 "use client"
 
 import { fetchArticles } from "@/lib/api/fetch-articles"
-import { IArticle } from "@/types/articles.type"
-import { useEffect, useState } from "react"
+import { IArticleData } from "@/types/articles.type"
+import { useEffect, useState, useLayoutEffect } from "react"
 import ArticleCard from "./ArticleCard"
 import { articleAnimate } from "@/lib/animates/article.animate"
 import { useSession } from "next-auth/react"
-
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
-  PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
 
-export function ListArticles({ searchParams }: { searchParams: { [key: string]: string } }) {
-    const [articles, setArticles] = useState<IArticle[] | null>([])
+export function ListArticles() {
+  const { data: session } = useSession()
+  const searchParams = useSearchParams()
 
-    const { data: session } = useSession()
-    
-    const currentPage = parseInt(searchParams.page ?? "1")
-    const limitPage = parseInt(searchParams.limit ?? session?.user.role === "User" ? "10" : "9")
+  const [articles, setArticles] = useState<IArticleData[]>([])
+  const [lastPage, setLastPage] = useState(0)
 
-    useEffect(() => {
-        articleAnimate(".article-card")
-        const loadArticles = async () => {
-            const datas = await fetchArticles(currentPage, limitPage)
+  const currentPage = Number(searchParams.get("page") || 1)
+  const limitPage = Number(searchParams.get("limit") || (session?.user.role === "User" ? 10 : 9))
 
-            setArticles(datas)
-        }
+  useEffect(() => {
 
-        loadArticles()
-    })
-    return (
-        <div className="space-y-10 my-10">
-            <PaginationDemo></PaginationDemo>
+    async function loadArticles() {
+      const res = await fetchArticles(currentPage, limitPage)
 
-            {
-                articles?.map((article: IArticle) => (
-                    <div key={article.id} className="article-card opacity-0 translate-y-100">
-                        <ArticleCard
-                            id={article.id}
-                            title={article.title}
-                            content={article.content}
-                            imageUrl={article.imageUrl}
-                            category={article.category}
-                            />
-                    </div>
-                ))
-            }
+      setArticles(res?.data ?? [])
+      setLastPage(res?.lastPage ?? 0)
+    }
+
+    loadArticles()
+  }, [currentPage, limitPage])
+
+  useLayoutEffect(() => {
+    articleAnimate(".article-card")
+  }, [articles])
+
+  return (
+    <div className="space-y-10 my-10">
+      <PaginationArticle currentPage={currentPage} lastPage={lastPage} />
+
+      {articles?.map((article: IArticleData) => (
+        <div key={article.id} className="article-card opacity-0 translate-y-100">
+          <ArticleCard {...article} />
         </div>
-    )
+      ))}
+    </div>
+  )
 }
 
-export function PaginationDemo() {
+export function PaginationArticle({ currentPage, lastPage }: { currentPage: number; lastPage: number }) {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  function handlePageChange(page: number) {
+    router.push(`${pathname}?page=${page}`)
+  }
+
   return (
     <Pagination>
       <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious href="#" />
+        <PaginationItem aria-disabled={currentPage === 1} className="cursor-pointer">
+          <PaginationPrevious onClick={() => handlePageChange(Math.max(1, currentPage - 1))} />
         </PaginationItem>
-        <PaginationItem>
-          <PaginationLink href="#">1</PaginationLink>
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationLink href="#">
-            2
-          </PaginationLink>
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationLink href="#">3</PaginationLink>
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationEllipsis />
-        </PaginationItem>
-        <PaginationItem>
-          <PaginationNext href="#" />
+
+        <PaginationItem aria-disabled={currentPage === lastPage} className="cursor-pointer">
+          <PaginationNext onClick={() => handlePageChange(Math.min(lastPage, currentPage + 1))} />
         </PaginationItem>
       </PaginationContent>
     </Pagination>
